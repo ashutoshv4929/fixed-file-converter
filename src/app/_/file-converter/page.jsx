@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 
-import { useUpload } from "../../utilities/runtime-helpers";
+import { useUpload } from "../utilities/runtime-helpers";
 
 function MainComponent() {
   const [selectedFiles, setSelectedFiles] = React.useState([]);
@@ -105,6 +105,83 @@ function MainComponent() {
     },
   ];
 
+  const handleFileSelect = async (event) => {
+    const files = Array.from(event.target.files);
+    setError("");
+
+    const uploadedFiles = [];
+    for (const file of files) {
+      try {
+        const { url, error: uploadError } = await upload({ file });
+        if (uploadError) {
+          setError(`Failed to upload ${file.name}: ${uploadError}`);
+          return;
+        }
+        uploadedFiles.push({
+          name: file.name,
+          url: url,
+          size: file.size,
+          type: file.type,
+        });
+      } catch (err) {
+        setError(`Failed to upload ${file.name}`);
+        return;
+      }
+    }
+
+    setSelectedFiles(uploadedFiles);
+  };
+
+  const handleConvert = async () => {
+    if (!conversionType || selectedFiles.length === 0) {
+      setError("Please select files and conversion type");
+      return;
+    }
+
+    setIsConverting(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/convert", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          files: selectedFiles,
+          conversionType: conversionType,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Conversion failed: ${response.statusText}`);
+      }
+
+      const result = await response.json();
+      setConvertedFiles(result.convertedFiles || []);
+    } catch (err) {
+      console.error(err);
+      setError("Conversion failed. Please try again.");
+    } finally {
+      setIsConverting(false);
+    }
+  };
+
+  const resetApp = () => {
+    setSelectedFiles([]);
+    setConvertedFiles([]);
+    setConversionType("");
+    setError("");
+  };
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Header */}
@@ -123,11 +200,7 @@ function MainComponent() {
               </div>
             </div>
             <button
-              onClick={() => {
-                setSelectedFiles([]);
-                setConvertedFiles([]);
-                setError("");
-              }}
+              onClick={resetApp}
               className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
             >
               <i className="fas fa-refresh mr-2"></i>
@@ -147,9 +220,9 @@ function MainComponent() {
             {conversionOptions.map((option) => (
               <button
                 key={option.id}
-                onClick={() => setTargetFormat(option.id)}
+                onClick={() => setConversionType(option.id)}
                 className={`p-4 rounded-lg border-2 transition-all ${
-                  targetFormat === option.id
+                  conversionType === option.id
                     ? "border-blue-500 bg-blue-50 text-blue-700"
                     : "border-gray-200 hover:border-gray-300 text-gray-700"
                 }`}
