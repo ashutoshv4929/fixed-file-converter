@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 
-import { useUpload } from "../utilities/runtime-helpers";
+import { useUpload } from "../../utilities/runtime-helpers";
 
 function MainComponent() {
   const [selectedFiles, setSelectedFiles] = React.useState([]);
