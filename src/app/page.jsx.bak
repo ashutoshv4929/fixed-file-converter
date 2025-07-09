@@ -1,0 +1,14 @@
+import dynamic from 'next/dynamic';
+
+// Dynamically import the converter component with no SSR
+const FileConverter = dynamic(
+  () => import('./converter/page'),
+  { 
+    ssr: false,
+    loading: () => <div className="flex items-center justify-center min-h-screen">Loading...</div>
+  }
+);
+
+export default function Home() {
+  return <FileConverter />;
+}

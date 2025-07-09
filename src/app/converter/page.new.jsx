@@ -22,12 +22,7 @@ import {
   faFileContract,
   faFilePrescription,
   faFileMedical,
-  faFileInvoiceDollar,
-  faRefresh,
-  faSpinner,
-  faExchangeAlt,
-  faExclamationCircle,
-  faTimes
+  faFileInvoiceDollar
 } from '@fortawesome/free-solid-svg-icons';
 
 // Conversion options with Font Awesome icons
