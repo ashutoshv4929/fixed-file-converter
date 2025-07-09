@@ -35,34 +35,37 @@ function useHandleStreamResponse({
 
 function useUpload() {
   const [loading, setLoading] = React.useState(false);
+  
   const upload = React.useCallback(async (input) => {
     try {
       setLoading(true);
+      
+      // Handle both direct file input and react native asset
+      const file = input.file || (input.reactNativeAsset && input.reactNativeAsset.file);
+      
+      if (!file) {
+        throw new Error('No file provided for upload');
+      }
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      console.log('Uploading file:', file.name, 'Size:', file.size, 'Type:', file.type);
+      
       let response;
-      if ('reactNativeAsset' in input && input.reactNativeAsset) {
-        if (input.reactNativeAsset.file) {
-          const formData = new FormData();
-          formData.append("file", input.reactNativeAsset.file);
-          response = await fetch("/api/upload", {
-            method: "POST",
-            body: formData
-          });
-        } else {
-          const response = await fetch("/_create/api/upload/presign/", {
-            method: 'POST',
-          })
-          const { secureSignature, secureExpire } = await response.json();
-          const result = await client.uploadFile(input.reactNativeAsset, {
-            fileName: input.reactNativeAsset.name ?? input.reactNativeAsset.uri.split("/").pop(),
-            contentType: input.reactNativeAsset.mimeType,
-            secureSignature,
-            secureExpire
-          });
-          return { url: `${process.env.EXPO_PUBLIC_BASE_CREATE_USER_CONTENT_URL}/${result.uuid}/`, mimeType: result.mimeType || null };
-        }
+      if ("reactNativeAsset" in input && input.reactNativeAsset) {
+        const response = await fetch("/_create/api/upload/presign/", {
+          method: 'POST',
+        })
+        const { secureSignature, secureExpire } = await response.json();
+        const result = await client.uploadFile(input.reactNativeAsset, {
+          fileName: input.reactNativeAsset.name ?? input.reactNativeAsset.uri.split("/").pop(),
+          contentType: input.reactNativeAsset.mimeType,
+          secureSignature,
+          secureExpire
+        });
+        return { url: `${process.env.EXPO_PUBLIC_BASE_CREATE_USER_CONTENT_URL}/${result.uuid}/`, mimeType: result.mimeType || null };
       } else if ("file" in input && input.file) {
-        const formData = new FormData();
-        formData.append("file", input.file);
         response = await fetch("/_create/api/upload/", {
           method: "POST",
           body: formData

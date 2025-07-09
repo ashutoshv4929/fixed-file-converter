@@ -112,19 +112,23 @@ function MainComponent() {
     const uploadedFiles = [];
     for (const file of files) {
       try {
-        const { url, error: uploadError } = await upload({ file });
-        if (uploadError) {
-          setError(`Failed to upload ${file.name}: ${uploadError}`);
-          return;
+        console.log('Starting upload for file:', file.name);
+        const result = await upload({ file });
+        console.log('Upload result:', result);
+        
+        if (!result || !result.url) {
+          throw new Error('No URL returned from upload');
         }
+        
         uploadedFiles.push({
           name: file.name,
-          url: url,
+          url: result.url,
           size: file.size,
           type: file.type,
         });
       } catch (err) {
-        setError(`Failed to upload ${file.name}`);
+        console.error('Upload error:', err);
+        setError(`Failed to upload ${file.name}: ${err.message}`);
         return;
       }
     }
