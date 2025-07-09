@@ -172,22 +172,5 @@ function createErrorResponse(message, status = 500, error = null) {
   return NextResponse.json(response, { status });
 }
 
-// Add a GET endpoint to serve the uploaded files
-export async function GET(request) {
-  const url = new URL(request.url);
-  const fileId = url.pathname.split('/').pop();
-  
-  if (!fileId || !uploads.has(fileId)) {
-    return new NextResponse('File not found', { status: 404 });
-  }
-  
-  const fileData = uploads.get(fileId);
-  
-  return new NextResponse(fileData.data, {
-    headers: {
-      'Content-Type': fileData.type,
-      'Content-Disposition': `inline; filename="${fileData.name}"`,
-      'Content-Length': fileData.size
-    }
-  });
-}
+// File serving is handled by the GET function above
+// This comment replaces the duplicate GET function that was here

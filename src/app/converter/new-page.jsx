@@ -126,27 +126,3 @@ const FileConverterContent = () => {
 };
 
 export default FileConverterWithProvider;
-                      Download
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </div>
-      )}
-      
-      <div className={styles.info}>
-        <h3>How to use:</h3>
-        <ol>
-          <li>Click "Browse" or drag and drop files into the upload area</li>
-          <li>Select the desired output format</li>
-          <li>Click "Convert Files"</li>
-          <li>Download your converted files</li>
-        </ol>
-      </div>
-    </div>
-  );
-};
-
-export default FileConverter;
