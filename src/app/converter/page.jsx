@@ -1,22 +1,9 @@
 "use client";
 import React from "react";
+import dynamic from 'next/dynamic';
 
-import { useUpload } from "../../utilities/runtime-helpers";
-
-function MainComponent() {
-  const [selectedFiles, setSelectedFiles] = React.useState([]);
-  const [targetFormat, setTargetFormat] = React.useState("");
-  const [isConverting, setIsConverting] = React.useState(false);
-  const [convertedFiles, setConvertedFiles] = React.useState([]);
-  const [error, setError] = React.useState("");
-  const [upload, { loading: uploading }] = useUpload();
-  
-  // Get the selected conversion option
-  const selectedOption = React.useMemo(() => {
-    return conversionOptions.find(option => option.id === targetFormat) || null;
-  }, [targetFormat]);
-
-  const conversionOptions = [
+// Move conversion options outside the component
+const conversionOptions = [
     {
       id: "pdf-to-word",
       name: "PDF to Word",
@@ -110,8 +97,24 @@ function MainComponent() {
     },
   ];
 
+
+
+// Main component with proper initialization
+function MainComponent() {
+  const [selectedFiles, setSelectedFiles] = React.useState([]);
+  const [targetFormat, setTargetFormat] = React.useState("");
+  const [isConverting, setIsConverting] = React.useState(false);
+  const [convertedFiles, setConvertedFiles] = React.useState([]);
+  const [error, setError] = React.useState("");
+  const [upload, { loading: uploading }] = React.useState({ loading: false });
+  
+  // Get the selected conversion option
+  const selectedOption = React.useMemo(() => {
+    return conversionOptions.find(option => option.id === targetFormat) || null;
+  }, [targetFormat]);
+
   // Handle file selection
-  const handleFileSelect = async (event) => {
+  const handleFileSelect = React.useCallback((event) => {
     try {
       const files = Array.from(event.target.files);
       if (files.length === 0) return;
@@ -122,10 +125,10 @@ function MainComponent() {
       setError("Failed to select files. Please try again.");
       console.error(err);
     }
-  };
+  }, []);
 
   // Handle file conversion
-  const handleConvert = async () => {
+  const handleConvert = React.useCallback(async () => {
     if (!selectedOption) {
       setError("Please select a conversion type");
       return;
@@ -163,7 +166,7 @@ function MainComponent() {
     } finally {
       setIsConverting(false);
     }
-  };
+  }, [selectedOption, selectedFiles]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
