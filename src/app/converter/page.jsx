@@ -5,11 +5,16 @@ import { useUpload } from "../../utilities/runtime-helpers";
 
 function MainComponent() {
   const [selectedFiles, setSelectedFiles] = React.useState([]);
-  const [conversionType, setConversionType] = React.useState("");
+  const [targetFormat, setTargetFormat] = React.useState("");
   const [isConverting, setIsConverting] = React.useState(false);
   const [convertedFiles, setConvertedFiles] = React.useState([]);
   const [error, setError] = React.useState("");
   const [upload, { loading: uploading }] = useUpload();
+  
+  // Get the selected conversion option
+  const selectedOption = React.useMemo(() => {
+    return conversionOptions.find(option => option.id === targetFormat) || null;
+  }, [targetFormat]);
 
   const conversionOptions = [
     {
@@ -104,6 +109,61 @@ function MainComponent() {
       to: "PDF",
     },
   ];
+
+  // Handle file selection
+  const handleFileSelect = async (event) => {
+    try {
+      const files = Array.from(event.target.files);
+      if (files.length === 0) return;
+      
+      setSelectedFiles(prev => [...prev, ...files]);
+      setError("");
+    } catch (err) {
+      setError("Failed to select files. Please try again.");
+      console.error(err);
+    }
+  };
+
+  // Handle file conversion
+  const handleConvert = async () => {
+    if (!selectedOption) {
+      setError("Please select a conversion type");
+      return;
+    }
+    
+    if (selectedFiles.length === 0) {
+      setError("Please select at least one file");
+      return;
+    }
+    
+    try {
+      setIsConverting(true);
+      setError("");
+      
+      // Simulate conversion (replace with actual API call)
+      const converted = await Promise.all(
+        selectedFiles.map(async (file) => {
+          // In a real app, you would upload the file and get the converted file URL
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          
+          return {
+            id: Math.random().toString(36).substr(2, 9),
+            name: file.name.replace(/\.[^/.]+$/, '') + '.' + selectedOption.to.toLowerCase(),
+            type: selectedOption.to.toLowerCase(),
+            size: file.size,
+            url: '#' // Replace with actual download URL
+          };
+        })
+      );
+      
+      setConvertedFiles(converted);
+    } catch (err) {
+      setError("Failed to convert files. Please try again.");
+      console.error(err);
+    } finally {
+      setIsConverting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -229,29 +289,6 @@ function MainComponent() {
             </div>
           )}
         </div>
-
-        {/* Convert Button */}
-        {selectedFiles.length > 0 && conversionType && (
-          <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-            <button
-              onClick={handleConvert}
-              disabled={isConverting}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold py-4 px-6 rounded-lg transition-colors flex items-center justify-center space-x-2"
-            >
-              {isConverting ? (
-                <>
-                  <i className="fas fa-spinner fa-spin"></i>
-                  <span>Converting...</span>
-                </>
-              ) : (
-                <>
-                  <i className="fas fa-magic"></i>
-                  <span>Convert Files</span>
-                </>
-              )}
-            </button>
-          </div>
-        )}
 
         {/* Error Message */}
         {error && (
