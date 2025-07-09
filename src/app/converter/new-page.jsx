@@ -57,7 +57,7 @@ const FileConverterContent = () => {
         <ConversionOptions />
         
         <div className={styles.info}>
-          <h3>How to convert files</h3>
+          <h3 className={styles.sectionTitle}>How to convert files</h3>
           <ol>
             <li><strong>Select files</strong> by clicking the upload area or dragging and dropping</li>
             <li><strong>Upload files</strong> to our secure server (files are automatically deleted after 1 hour)</li>
@@ -65,7 +65,7 @@ const FileConverterContent = () => {
             <li><strong>Download</strong> your converted files</li>
           </ol>
           
-          <h4>Supported file formats</h4>
+          <h4 className={styles.sectionTitle}>Supported file formats</h4>
           <div className={styles.formatGrid}>
             <div className={styles.formatGroup}>
               <h5>Documents</h5>
@@ -107,7 +107,7 @@ const FileConverterContent = () => {
           </div>
           
           <div className={styles.features}>
-            <h4>Why use our file converter?</h4>
+            <h4 className={styles.sectionTitle}>Why use our file converter?</h4>
             <ul>
               <li>✅ 100% free to use</li>
               <li>✅ No installation required</li>
