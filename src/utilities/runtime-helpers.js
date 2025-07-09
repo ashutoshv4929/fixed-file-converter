@@ -43,7 +43,7 @@ function useUpload() {
         if (input.reactNativeAsset.file) {
           const formData = new FormData();
           formData.append("file", input.reactNativeAsset.file);
-          response = await fetch("/_create/api/upload/", {
+          response = await fetch("/api/upload", {
             method: "POST",
             body: formData
           });
