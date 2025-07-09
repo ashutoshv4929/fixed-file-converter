@@ -39,18 +39,29 @@ function useUpload() {
   const upload = React.useCallback(async (input) => {
     try {
       setLoading(true);
+      console.log('Starting upload with input:', input);
       
       // Handle both direct file input and react native asset
       const file = input.file || (input.reactNativeAsset && input.reactNativeAsset.file);
       
       if (!file) {
-        throw new Error('No file provided for upload');
+        const error = new Error('No file provided for upload');
+        console.error('Upload error:', error);
+        throw error;
       }
+      
+      console.log('Processing file:', {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        isFile: file instanceof File,
+        isBlob: file instanceof Blob
+      });
       
       const formData = new FormData();
       formData.append('file', file);
       
-      console.log('Uploading file:', file.name, 'Size:', file.size, 'Type:', file.type);
+      console.log('Sending upload request to /_create/api/upload/');
       
       let response;
       if ("reactNativeAsset" in input && input.reactNativeAsset) {

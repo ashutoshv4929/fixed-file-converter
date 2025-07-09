@@ -1,69 +1,136 @@
 import { NextResponse } from 'next/server';
-import { writeFile } from 'fs/promises';
-import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
-// This is a simple in-memory storage for demo purposes
-// In production, you should use a proper file storage service like AWS S3
+// Simple in-memory storage for demo purposes
 const uploads = new Map();
+
+// Maximum file size (10MB)
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+
+// Allowed file types
+const ALLOWED_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'text/plain'
+];
 
 export async function POST(request) {
   try {
-    console.log('Upload request received');
+    console.log('=== New Upload Request ===');
+    
+    // Parse the form data
     const formData = await request.formData();
     const file = formData.get('file');
     
     if (!file) {
-      console.error('No file found in the request');
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+      console.error('No file found in form data');
+      return NextResponse.json(
+        { error: 'No file provided' }, 
+        { status: 400 }
+      );
     }
 
-    console.log('Processing file:', file.name, 'Type:', file.type, 'Size:', file.size);
+    console.log('File info:', {
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      isFile: file instanceof File,
+      isBlob: file instanceof Blob
+    });
 
-    // Convert the file data to a buffer
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      const error = `File too large. Max size is ${MAX_FILE_SIZE / (1024 * 1024)}MB`;
+      console.error(error);
+      return NextResponse.json(
+        { error },
+        { status: 400 }
+      );
+    }
+
+    // Validate file type
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      const error = `File type ${file.type} is not allowed`;
+      console.error(error);
+      return NextResponse.json(
+        { error },
+        { status: 400 }
+      );
+    }
+
+    // Read file data
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     
-    // Generate a unique filename
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${uuidv4()}.${fileExt}`;
+    // Generate a unique ID for the file
+    const fileId = uuidv4();
+    const fileExt = file.name.split('.').pop() || '';
+    const fileName = `${fileId}.${fileExt}`;
     
-    // In a real app, you would upload to a cloud storage service here
-    // For demo, we'll just store the buffer in memory
+    // Store file in memory
     const fileData = {
+      id: fileId,
       name: file.name,
       type: file.type,
       size: file.size,
       data: buffer,
-      uploadedAt: new Date().toISOString()
+      uploadedAt: new Date().toISOString(),
+      url: `/api/files/${fileId}`
     };
     
-    // Store file data (in-memory for demo)
-    const fileId = uuidv4();
     uploads.set(fileId, fileData);
     
-    // Create a URL to access the file
-    // In production, this would be a URL to your cloud storage
-    const fileUrl = `/api/files/${fileId}`;
+    console.log(`File stored successfully. ID: ${fileId}, Size: ${file.size} bytes`);
     
-    console.log('File uploaded successfully:', fileId);
-    
+    // Return success response
     return NextResponse.json({
       success: true,
-      url: fileUrl,
+      id: fileId,
       name: file.name,
       size: file.size,
       type: file.type,
-      id: fileId
+      url: fileData.url
     });
     
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('Error in upload handler:', error);
     return NextResponse.json(
-      { error: error.message || 'Error processing file upload' },
+      { 
+        error: 'Failed to process file upload',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      },
       { status: 500 }
     );
   }
+}
+
+// Add a GET endpoint to serve the uploaded files
+export async function GET(request) {
+  const url = new URL(request.url);
+  const fileId = url.pathname.split('/').pop();
+  
+  if (!fileId || !uploads.has(fileId)) {
+    return new NextResponse('File not found', { status: 404 });
+  }
+  
+  const fileData = uploads.get(fileId);
+  
+  return new NextResponse(fileData.data, {
+    headers: {
+      'Content-Type': fileData.type,
+      'Content-Disposition': `inline; filename="${fileData.name}"`,
+      'Content-Length': fileData.size,
+      'Cache-Control': 'public, max-age=31536000, immutable'
+    }
+  });
 }
 
 // Add a GET endpoint to serve the uploaded files

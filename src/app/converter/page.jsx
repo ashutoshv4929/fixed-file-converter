@@ -108,16 +108,28 @@ function MainComponent() {
   const handleFileSelect = async (event) => {
     const files = Array.from(event.target.files);
     setError("");
+    console.log('Files selected for upload:', files);
+
+    if (files.length === 0) {
+      setError('No files selected');
+      return;
+    }
 
     const uploadedFiles = [];
     for (const file of files) {
       try {
-        console.log('Starting upload for file:', file.name);
+        console.log('Starting upload for file:', file.name, {
+          size: file.size,
+          type: file.type,
+          isFile: file instanceof File,
+          isBlob: file instanceof Blob
+        });
+        
         const result = await upload({ file });
-        console.log('Upload result:', result);
+        console.log('Upload completed for file:', file.name, 'Result:', result);
         
         if (!result || !result.url) {
-          throw new Error('No URL returned from upload');
+          throw new Error('Upload completed but no URL was returned');
         }
         
         uploadedFiles.push({
@@ -126,14 +138,21 @@ function MainComponent() {
           size: file.size,
           type: file.type,
         });
+        
+        // Clear any previous errors if we successfully uploaded at least one file
+        setError("");
       } catch (err) {
-        console.error('Upload error:', err);
+        console.error('Error uploading file:', file.name, err);
         setError(`Failed to upload ${file.name}: ${err.message}`);
-        return;
+        
+        // Don't return here, try to upload remaining files
+        continue;
       }
     }
 
-    setSelectedFiles(uploadedFiles);
+    if (uploadedFiles.length > 0) {
+      setSelectedFiles(prevFiles => [...prevFiles, ...uploadedFiles]);
+    }
   };
 
   const handleConvert = async () => {
