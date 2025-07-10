@@ -1,6 +1,43 @@
-This project was generated from [create.xyz](https://create.xyz/).
+# File Converter
 
-It is a [Next.js](https://nextjs.org/) project built on React and TailwindCSS.
+A modern file conversion tool built with Next.js, React, and TailwindCSS.
+
+## 🚀 Features
+
+- Convert between various file formats
+- Simple and intuitive interface
+- Fast and reliable conversions
+
+## 🛠️ Setup
+
+1. Clone the repository
+2. Install dependencies:
+   ```bash
+   npm install
+   # or
+   yarn install
+   ```
+3. Set up environment variables:
+   - Copy `.env.example` to `.env.local`
+   - Add your CloudConvert API key to `.env.local`
+
+4. Run the development server:
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+## 🔑 Getting an API Key
+
+1. Sign up at [CloudConvert](https://cloudconvert.com/)
+2. Go to [API Keys](https://cloudconvert.com/dashboard/api/v2/keys)
+3. Create a new API key
+4. Copy the key and add it to your `.env.local` file
+
+## 🚀 Deployment
+
+Deploy your own version using Vercel or your preferred hosting provider.
 
 ## Getting Started
 

@@ -18,6 +18,10 @@
 
 # misc
 .DS_Store
+
+# environment variables
+.env*.local
+!.env.example
 *.pem
 
 # debug
