@@ -27,7 +27,8 @@ import {
   faSpinner,
   faExchangeAlt,
   faExclamationCircle,
-  faTimes
+  faTimes,
+  faCloud
 } from '@fortawesome/free-solid-svg-icons';
 
 // Conversion options with Font Awesome icons
@@ -125,7 +126,7 @@ function FileConverter() {
     }
   }, []);
 
-  // Handle file conversion
+  // Handle file conversion with CloudConvert
   const handleConvert = React.useCallback(async () => {
     if (!selectedOption) {
       setError("Please select a conversion type");
@@ -141,26 +142,109 @@ function FileConverter() {
       setIsConverting(true);
       setError("");
       
-      // Simulate conversion (replace with actual API call)
-      const converted = await Promise.all(
-        selectedFiles.map(async (file) => {
-          // In a real app, you would upload the file and get the converted file URL
-          await new Promise(resolve => setTimeout(resolve, 1000));
+      // Convert each file using CloudConvert
+      const converted = [];
+      
+      for (const file of selectedFiles) {
+        try {
+          setUploading(true);
           
-          return {
-            id: Math.random().toString(36).substr(2, 9),
+          // Call our API route to handle the conversion
+          const response = await fetch('/api/cloudconvert', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              file: {
+                name: file.name,
+                size: file.size,
+                type: file.type,
+              },
+              targetFormat: selectedOption.to,
+            }),
+          });
+          
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to start conversion');
+          }
+          
+          const { jobId, uploadUrl, method, headers } = await response.json();
+          
+          // Upload the file to CloudConvert
+          const uploadResponse = await fetch(uploadUrl, {
+            method,
+            body: file,
+            headers: {
+              ...headers,
+              'Content-Length': file.size,
+            },
+          });
+          
+          if (!uploadResponse.ok) {
+            throw new Error('Failed to upload file');
+          }
+          
+          // Poll for conversion completion
+          let downloadUrl;
+          let attempts = 0;
+          const maxAttempts = 60; // 1 minute timeout (60 * 1 second)
+          
+          while (attempts < maxAttempts) {
+            const statusResponse = await fetch(`/api/cloudconvert?jobId=${jobId}`);
+            
+            if (!statusResponse.ok) {
+              const error = await statusResponse.json();
+              throw new Error(error.error || 'Failed to get conversion status');
+            }
+            
+            const statusData = await statusResponse.json();
+            
+            if (statusData.status === 'finished') {
+              downloadUrl = statusData.downloadUrl;
+              break;
+            } else if (statusData.status === 'error') {
+              throw new Error(statusData.error || 'Conversion failed');
+            }
+            
+            // Wait before polling again
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            attempts++;
+          }
+          
+          if (!downloadUrl) {
+            throw new Error('Conversion timed out');
+          }
+          
+          converted.push({
+            id: jobId,
             name: file.name.replace(/\.[^/.]+$/, '') + '.' + selectedOption.to.toLowerCase(),
             type: selectedOption.to.toLowerCase(),
             size: file.size,
-            url: '#' // Replace with actual download URL
-          };
-        })
-      );
+            url: downloadUrl
+          });
+          
+        } catch (err) {
+          console.error(`Error converting file ${file.name}:`, err);
+          // Continue with other files even if one fails
+          setError(`Failed to convert ${file.name}: ${err.message}`);
+        } finally {
+          setUploading(false);
+        }
+      }
       
       setConvertedFiles(converted);
+      
+      if (converted.length === 0) {
+        setError("Failed to convert any files. Please try again.");
+      } else if (converted.length < selectedFiles.length) {
+        setError(`Successfully converted ${converted.length} of ${selectedFiles.length} files. Some files failed to convert.`);
+      }
+      
     } catch (err) {
-      setError("Failed to convert files. Please try again.");
-      console.error(err);
+      console.error('Conversion error:', err);
+      setError(err.message || "Failed to convert files. Please try again.");
     } finally {
       setIsConverting(false);
     }
@@ -180,7 +264,7 @@ function FileConverter() {
                 <h1 className="text-xl font-bold text-gray-900">
                   FileConverter
                 </h1>
-                <p className="text-sm text-gray-500">Convert files instantly</p>
+                <p className="text-sm text-gray-500">Convert files instantly with CloudConvert</p>
               </div>
             </div>
             <button
@@ -239,10 +323,14 @@ function FileConverter() {
               className="hidden"
               id="file-upload"
               accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png"
+              disabled={isConverting}
             />
             <label htmlFor="file-upload" className="cursor-pointer">
               <div className="flex flex-col items-center">
-                <FontAwesomeIcon icon={faFileUpload} className="text-4xl text-gray-400 mb-4" />
+                <FontAwesomeIcon 
+                  icon={uploading ? faSpinner : faCloud} 
+                  className={`text-4xl mb-4 ${uploading ? 'animate-spin' : ''} text-blue-500`} 
+                />
                 <p className="text-lg font-medium text-gray-700 mb-2">
                   {uploading ? "Uploading..." : "Click to upload files"}
                 </p>
@@ -275,6 +363,7 @@ function FileConverter() {
                         setSelectedFiles(newFiles);
                       }}
                       className="text-red-500 hover:text-red-700"
+                      disabled={isConverting}
                     >
                       <FontAwesomeIcon icon={faTimes} />
                     </button>
@@ -290,15 +379,17 @@ function FileConverter() {
           <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
             <button
               onClick={handleConvert}
-              disabled={isConverting}
+              disabled={isConverting || uploading}
               className={`w-full py-3 px-6 rounded-lg font-semibold text-white transition-colors ${
-                isConverting ? 'bg-blue-400' : 'bg-blue-600 hover:bg-blue-700'
+                isConverting || uploading 
+                  ? 'bg-blue-400 cursor-not-allowed' 
+                  : 'bg-blue-600 hover:bg-blue-700'
               }`}
             >
-              {isConverting ? (
+              {isConverting || uploading ? (
                 <>
                   <FontAwesomeIcon icon={faSpinner} spin className="mr-2" />
-                  Converting...
+                  {uploading ? 'Uploading...' : 'Converting...'}
                 </>
               ) : (
                 <>
